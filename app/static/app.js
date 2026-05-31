@@ -19,7 +19,10 @@ function prettifyTitle(title) {
     if (_ROMAN_NUMERALS.has(word)) return word;
     const letters = (word.match(/\p{L}/gu) || []).length;
     if (letters >= 2 && word === word.toUpperCase() && word !== word.toLowerCase()) {
-      return word.toLowerCase().replace(/(^|[-'’])(\p{L})/gu, (_, sep, ch) => sep + ch.toUpperCase());
+      return word.toLowerCase()
+        .replace(/^\p{L}/u, (c) => c.toUpperCase())                         // first letter
+        .replace(/-(\p{L})/gu, (_, c) => '-' + c.toUpperCase())             // after a hyphen
+        .replace(/(['’])(\p{L})(?=\p{L})/gu, (_, ap, c) => ap + c.toUpperCase()); // after apostrophe only if more letters follow
     }
     return word;
   });
