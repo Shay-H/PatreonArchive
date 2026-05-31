@@ -1,0 +1,30 @@
+# Never copy the 1.3GB+ archive into the build context / image.
+# It is mounted at runtime via docker-compose.
+data/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# Secrets & local files
+.env
+.env.*
+!.env.example
+
+# Logs & debug artifacts
+*.log
+debug_*.txt
+debug_*.html
+
+# Editor / VCS
+.vscode/
+.git/
+.gitignore
+.DS_Store
+
+# Docs not needed at runtime
+*.md
+!DEPLOY.md

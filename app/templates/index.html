@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ app_name }}</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div>
+        <h1>{{ app_name }}</h1>
+        <p>Download, index, and search Patreon posts you already have access to.</p>
+      </div>
+      <div class="pill" id="configPill">Checking config…</div>
+    </header>
+
+    <details class="card ingest" id="ingestCard">
+      <summary class="ingest-summary"><h2>Ingest</h2></summary>
+
+      <div class="ingest-section">
+        <h3>Patreon</h3>
+        <div class="row">
+          <input id="creatorInput" list="creatorList" placeholder="Creator vanity or full URL (e.g. cinejump)">
+          <datalist id="creatorList"></datalist>
+          <label class="checkline">
+            <input id="downloadToggle" type="checkbox" checked>
+            Fetch from Patreon
+          </label>
+        </div>
+        <div class="row">
+          <button id="syncButton">Download + import posts</button>
+          <button id="refreshCreatorsButton" class="ghost">Refresh creators</button>
+        </div>
+        <p id="syncStatus" class="status">Enter a creator vanity, then click Download + import posts.</p>
+      </div>
+
+      <div class="ingest-section">
+        <h3>Cinebingers</h3>
+        <div class="row">
+          <button id="cinebingersButton">Sync cinebingers.ca</button>
+          <button id="tagButton" class="ghost">Tag all posts</button>
+        </div>
+        <p id="cinebingersStatus" class="status">Click to scrape all videos from cinebingers.ca and import them into the database.</p>
+        <p id="tagStatus" class="status hidden"></p>
+      </div>
+    </details>
+
+    <section class="card search-controls">
+      <h2>Search</h2>
+      <div class="search-layout">
+        <div class="search-inputs">
+          <div class="row">
+            <input id="query" placeholder="Search titles">
+          </div>
+          <div class="row">
+            <input id="tag" placeholder="Tags, comma-separated (e.g. anime, action)">
+            <select id="creatorFilter">
+              <option value="">All sources</option>
+            </select>
+            <button id="searchButton">Search</button>
+          </div>
+        </div>
+        <div class="type-filters">
+          <span class="filter-label">Type</span>
+          <span class="checkline">
+            <input type="checkbox" class="typeCheck" id="type-movie" value="movie" style="display:none">
+            <label for="type-movie" class="check">
+              <svg width="18px" height="18px" viewBox="0 0 18 18"><path d="M1,9 L1,3.5 C1,2 2,1 3.5,1 L14.5,1 C16,1 17,2 17,3.5 L17,14.5 C17,16 16,17 14.5,17 L3.5,17 C2,17 1,16 1,14.5 L1,9 Z"></path><polyline points="1 9 7 14 15 4"></polyline></svg>
+            </label>
+            <label for="type-movie" class="check-text">Movie</label>
+          </span>
+          <span class="checkline">
+            <input type="checkbox" class="typeCheck" id="type-tv" value="tv" style="display:none">
+            <label for="type-tv" class="check">
+              <svg width="18px" height="18px" viewBox="0 0 18 18"><path d="M1,9 L1,3.5 C1,2 2,1 3.5,1 L14.5,1 C16,1 17,2 17,3.5 L17,14.5 C17,16 16,17 14.5,17 L3.5,17 C2,17 1,16 1,14.5 L1,9 Z"></path><polyline points="1 9 7 14 15 4"></polyline></svg>
+            </label>
+            <label for="type-tv" class="check-text">TV</label>
+          </span>
+          <span class="checkline">
+            <input type="checkbox" class="typeCheck" id="type-anime" value="anime" style="display:none">
+            <label for="type-anime" class="check">
+              <svg width="18px" height="18px" viewBox="0 0 18 18"><path d="M1,9 L1,3.5 C1,2 2,1 3.5,1 L14.5,1 C16,1 17,2 17,3.5 L17,14.5 C17,16 16,17 14.5,17 L3.5,17 C2,17 1,16 1,14.5 L1,9 Z"></path><polyline points="1 9 7 14 15 4"></polyline></svg>
+            </label>
+            <label for="type-anime" class="check-text">Anime</label>
+          </span>
+        </div>
+      </div>
+    </section>
+
+    <main class="content-grid">
+      <section class="card results">
+        <div class="section-header">
+          <h2>Posts</h2>
+          <span id="resultsCount" class="muted">0 results</span>
+        </div>
+        <ul id="postList" class="post-list"></ul>
+      </section>
+
+      <section class="card detail">
+        <h2 id="postTitle">Select a post</h2>
+        <div id="postMeta" class="muted"></div>
+        <a id="postSource" class="muted hidden" target="_blank" rel="noopener noreferrer">Open original post</a>
+        <div id="postEmbed" class="hidden"></div>
+        <pre id="postBody"></pre>
+        <h3>Links</h3>
+        <ul id="postLinks"></ul>
+      </section>
+    </main>
+  </div>
+
+  <div id="authModal" class="modal-overlay hidden">
+    <div class="modal card">
+      <h2>Daily sync paused</h2>
+      <p id="authModalMsg"></p>
+      <div class="row">
+        <button id="authResumeBtn">I've refreshed it — resume daily sync</button>
+        <button id="authDismissBtn" class="ghost">Dismiss</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/app.js"></script>
+  <script src="/static/cinebingers.js"></script>
+</body>
+</html>

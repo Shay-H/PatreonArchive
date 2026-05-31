@@ -1,0 +1,33 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: patreon-archive
+    env_file:
+      - .env
+    environment:
+      # Absolute path inside the container; points at the mounted ./data volume.
+      - DATABASE_URL=sqlite:////app/data/patreon_archive.db
+      - DATA_ROOT=data
+      - RAW_ROOT=data/raw
+    volumes:
+      # Persists the SQLite DB, raw patreon-dl downloads, and the cinebingers
+      # cookie file (data/cinebingers_cookies.json) across rebuilds.
+      - ./data:/app/data
+    ports:
+      # Bind to loopback only; the host nginx terminates public traffic.
+      # 8001 avoids colliding with Consensus on 8000.
+      - "127.0.0.1:8001:8000"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+networks:
+  default:
+    name: patreon-archive-network
+    driver: bridge

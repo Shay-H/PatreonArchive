@@ -1,0 +1,22 @@
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Secrets — never commit. Keep only the example.
+.env
+.env.*
+!.env.example
+
+# Archive data (DB + raw downloads, ~1.3GB) and transfer tarballs
+data/
+*.db
+*.sqlite3
+*.tar
+*.tar.gz
+
+# Logs & debug artifacts (may contain cookies/session data)
+*.log
+debug_out.txt
+debug_err.txt
+debug_response.html
