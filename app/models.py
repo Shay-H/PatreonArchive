@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Table, Text, UniqueConstraint, func
+from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String, Table, Text, UniqueConstraint, func
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
@@ -41,6 +41,10 @@ class Post(Base):
 
     source_path: Mapped[str] = mapped_column(String(1000))
     raw_json: Mapped[str] = mapped_column(Text, default="{}")
+
+    # False when Patreon reported the user couldn't view the post (locked /
+    # no access). These are hidden from listings by default.
+    can_view: Mapped[bool] = mapped_column(Boolean, default=True, server_default="1", index=True)
 
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())

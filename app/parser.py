@@ -86,6 +86,23 @@ def extract_links(content: str, payload: dict) -> list[str]:
     return clean_links
 
 
+def extract_can_view(payload: dict) -> bool:
+    """Whether Patreon reported the post as viewable by the user.
+
+    Locked posts arrive in Patreon's JSON-API format with
+    data.attributes.current_user_can_view = false. Accessible posts use a
+    flattened format with no such flag, so default to True (viewable).
+    """
+    data = payload.get("data")
+    if isinstance(data, dict):
+        attrs = data.get("attributes")
+        if isinstance(attrs, dict) and "current_user_can_view" in attrs:
+            return bool(attrs["current_user_can_view"])
+    if "current_user_can_view" in payload:
+        return bool(payload["current_user_can_view"])
+    return True
+
+
 def normalize_post(path: Path, payload: dict) -> dict:
     title = _first_string(payload.get("title"), payload.get("name"), payload.get("post_title")) or "(untitled)"
 
@@ -108,6 +125,7 @@ def normalize_post(path: Path, payload: dict) -> dict:
         "published_at": published_at,
         "tags": extract_tags(payload),
         "links": extract_links(content, payload),
+        "can_view": extract_can_view(payload),
         "raw_json": json.dumps(payload, ensure_ascii=False),
         "source_path": str(path),
     }

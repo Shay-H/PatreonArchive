@@ -1,3 +1,4 @@
+import json
 import logging
 import threading
 
@@ -11,6 +12,7 @@ from sqlalchemy.orm import Session, joinedload, aliased
 from app.config import settings
 from app.database import SessionLocal, engine
 from app.models import Base, Creator, Post, Tag, post_tags
+from app.parser import extract_can_view
 from app.schemas import CreatorOut, PostDetail, PostSummary, SyncResult, TagOut
 from app.sync_service import get_sync_job_snapshot, start_sync_job
 from app.cinebingers_service import start_cinebingers_sync, get_job_snapshot as get_cinebingers_snapshot
@@ -53,6 +55,30 @@ def startup() -> None:
                 INSERT INTO posts_fts(posts_fts, rowid, title, content) VALUES('delete', old.id, old.title, old.content);
                 INSERT INTO posts_fts(rowid, title, content) VALUES (new.id, new.title, new.content);
             END;"""))
+
+    # Add the can_view column (if missing) and backfill access flags from
+    # raw_json once, so locked posts can be hidden by default.
+    if settings.database_url.startswith("sqlite"):
+        try:
+            with engine.begin() as conn:
+                cols = [row[1] for row in conn.execute(text("PRAGMA table_info(posts)"))]
+                if "can_view" not in cols:
+                    conn.execute(text("ALTER TABLE posts ADD COLUMN can_view BOOLEAN NOT NULL DEFAULT 1"))
+                    locked_ids = []
+                    candidates = conn.execute(text(
+                        "SELECT id, raw_json FROM posts WHERE raw_json LIKE '%current_user_can_view%'"
+                    ))
+                    for pid, raw in candidates:
+                        try:
+                            if extract_can_view(json.loads(raw)) is False:
+                                locked_ids.append(pid)
+                        except Exception:
+                            pass
+                    if locked_ids:
+                        ids = ",".join(str(int(i)) for i in locked_ids)
+                        conn.execute(text(f"UPDATE posts SET can_view=0 WHERE id IN ({ids})"))
+        except Exception as exc:
+            logging.getLogger("uvicorn.error").warning("can_view migration skipped: %s", exc)
 
     # One-time normalization: lowercase any legacy mixed-case tags.
     # Best-effort — a migration hiccup must never block app startup.
@@ -190,11 +216,16 @@ def list_posts(
     tag: str | None = Query(default=None),
     limit: int = Query(default=50, ge=1, le=500),
     offset: int = Query(default=0, ge=0),
+    include_locked: bool = Query(default=False),
     db: Session = Depends(get_db),
 ):
     stmt = select(Post).options(joinedload(Post.creator), joinedload(Post.tags)).order_by(desc(Post.published_at), Post.id)
 
     filters = []
+    if not include_locked:
+        # Hide posts Patreon couldn't access (locked / no view permission).
+        filters.append(Post.can_view.is_(True))
+
     if creator:
         stmt = stmt.join(Post.creator)
         filters.append(Creator.name == creator)

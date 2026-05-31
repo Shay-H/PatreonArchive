@@ -299,6 +299,7 @@ def _upsert_post(session: Session, creator: Creator, parsed: dict) -> None:
     post.published_at = parsed["published_at"]
     post.raw_json = parsed["raw_json"]
     post.source_path = parsed["source_path"]
+    post.can_view = parsed["can_view"]
 
     post.tags = [_get_or_create_tag(session, tag_name) for tag_name in parsed["tags"]]
     post.links = [Link(url=url) for url in parsed["links"]]

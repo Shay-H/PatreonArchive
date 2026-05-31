@@ -123,6 +123,7 @@ def _upsert_video(session, creator: Creator, video: CinebingersVideo) -> None:
     post.patreon_post_id = video.video_id
     post.title = video.title
     post.content = ""
+    post.can_view = True  # scraped cinebingers videos are always viewable
     post.post_url = video.cinebingers_url
     post.published_at = None
     post.raw_json = json.dumps({
