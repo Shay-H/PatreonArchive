@@ -222,7 +222,6 @@ function _makePostItem(post) {
   li.innerHTML = `
     <a href="#" data-id="${post.id}">${post.title}</a>
     <div class="muted">${post.creator}${published ? ' &middot; ' + published : ''}</div>
-    <div>${post.content_preview || ''}</div>
     <div class="tag-line">${post.tags.length ? post.tags.join(', ') : 'No tags'}</div>
   `;
   li.querySelector('a').addEventListener('click', (e) => {
