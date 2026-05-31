@@ -103,7 +103,76 @@ def extract_can_view(payload: dict) -> bool:
     return True
 
 
+def extract_text_from_doc(json_string: str | None) -> str:
+    """Pull plain text out of Patreon's ProseMirror content_json_string."""
+    if not json_string:
+        return ""
+    try:
+        doc = json.loads(json_string)
+    except (json.JSONDecodeError, TypeError):
+        return ""
+
+    parts: list[str] = []
+
+    def walk(node):
+        if isinstance(node, dict):
+            if node.get("type") == "text":
+                parts.append(node.get("text", ""))
+            for child in node.get("content", []):
+                walk(child)
+        elif isinstance(node, list):
+            for child in node:
+                walk(child)
+
+    walk(doc)
+    return " ".join(parts).strip()
+
+
+def _normalize_json_api(path: Path, payload: dict) -> dict:
+    """Normalize patreon-dl's post-api.json (Patreon JSON-API) format."""
+    data = payload.get("data", {})
+    attrs = data.get("attributes", {})
+    included = payload.get("included", [])
+
+    title = (attrs.get("title") or "").strip() or "(untitled)"
+    content = (attrs.get("content") or "").strip() or extract_text_from_doc(attrs.get("content_json_string"))
+    post_id = str(data.get("id") or "").strip() or None
+    post_url = (attrs.get("url") or "").strip() or None
+    published_at = _parse_datetime(attrs.get("published_at") or attrs.get("created_at"))
+
+    tags = [
+        (item.get("attributes", {}).get("value") or "").strip()
+        for item in included
+        if item.get("type") == "post_tag"
+    ]
+
+    links: set[str] = set(URL_REGEX.findall(content or ""))
+    embed = attrs.get("embed")
+    if isinstance(embed, dict):
+        url = (embed.get("url") or "").strip()
+        if url.startswith("http"):
+            links.add(url)
+
+    return {
+        "post_id": post_id,
+        "title": title,
+        "content": content,
+        "post_url": post_url,
+        "published_at": published_at,
+        "tags": sorted({t.lower() for t in tags if t}),
+        "links": sorted(links),
+        "can_view": extract_can_view(payload),
+        "raw_json": json.dumps(payload, ensure_ascii=False),
+        "source_path": str(path),
+    }
+
+
 def normalize_post(path: Path, payload: dict) -> dict:
+    # patreon-dl v3 writes post-api.json in Patreon's JSON-API format.
+    data = payload.get("data")
+    if isinstance(data, dict) and data.get("type") == "post":
+        return _normalize_json_api(path, payload)
+
     title = _first_string(payload.get("title"), payload.get("name"), payload.get("post_title")) or "(untitled)"
 
     content = _first_string(

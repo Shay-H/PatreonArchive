@@ -46,7 +46,10 @@ _sync_jobs: dict[str, SyncJobState] = {}
 
 
 def _find_post_info_files(root: Path) -> list[Path]:
-    candidates = list(root.rglob("post_info*.json"))
+    # patreon-dl v3 writes post-api.json per post; older layouts used post_info*.
+    candidates = list(root.rglob("post-api.json"))
+    if not candidates:
+        candidates = list(root.rglob("post_info*.json"))
     if not candidates:
         candidates = list(root.rglob("post_info*"))
     return [path for path in candidates if path.is_file()]
