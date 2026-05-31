@@ -6,6 +6,25 @@ function setStatus(message) {
   document.getElementById('syncStatus').textContent = message;
 }
 
+// Convert fully-uppercase words (e.g. "MEAN GIRLS", "SPIDER-NOIR") to
+// capitalized form. Mixed-case words, tokens with digits (e.g. "S02E09",
+// "1978"), and roman-numeral sequel markers ("II", "IV") are left untouched.
+const _ROMAN_NUMERALS = new Set([
+  'II', 'III', 'IV', 'VI', 'VII', 'VIII', 'IX', 'XI', 'XII', 'XIII',
+  'XIV', 'XV', 'XVI', 'XVII', 'XVIII', 'XIX', 'XX',
+]);
+function prettifyTitle(title) {
+  if (!title) return title;
+  return title.replace(/[\p{L}][\p{L}'’\-]*/gu, (word) => {
+    if (_ROMAN_NUMERALS.has(word)) return word;
+    const letters = (word.match(/\p{L}/gu) || []).length;
+    if (letters >= 2 && word === word.toUpperCase() && word !== word.toLowerCase()) {
+      return word.toLowerCase().replace(/(^|[-'’])(\p{L})/gu, (_, sep, ch) => sep + ch.toUpperCase());
+    }
+    return word;
+  });
+}
+
 let syncPoller = null;
 let syncProgress = null;
 
@@ -142,7 +161,7 @@ async function loadPost(id) {
   const res = await fetch(`/api/posts/${id}`);
   const post = await res.json();
 
-  document.getElementById('postTitle').textContent = post.title;
+  document.getElementById('postTitle').textContent = prettifyTitle(post.title);
   document.getElementById('postMeta').textContent =
     `${post.creator} | ${post.published_at ?? ''} | ${post.tags.join(', ')}`;
   const postBody = document.getElementById('postBody');
@@ -220,7 +239,7 @@ function _makePostItem(post) {
     ? new Date(post.published_at).toLocaleString()
     : '';
   li.innerHTML = `
-    <a href="#" data-id="${post.id}">${post.title}</a>
+    <a href="#" data-id="${post.id}">${prettifyTitle(post.title)}</a>
     <div class="muted">${post.creator}${published ? ' &middot; ' + published : ''}</div>
     <div class="tag-line">${post.tags.length ? post.tags.join(', ') : 'No tags'}</div>
   `;
