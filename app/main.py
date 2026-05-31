@@ -1,3 +1,4 @@
+import logging
 import threading
 
 from fastapi import Depends, FastAPI, HTTPException, Query, Request
@@ -54,10 +55,16 @@ def startup() -> None:
             END;"""))
 
     # One-time normalization: lowercase any legacy mixed-case tags.
-    with SessionLocal() as db:
-        changed = lowercase_existing_tags(db)
-        if changed:
-            db.commit()
+    # Best-effort — a migration hiccup must never block app startup.
+    try:
+        with SessionLocal() as db:
+            changed = lowercase_existing_tags(db)
+            if changed:
+                db.commit()
+    except Exception as exc:
+        logging.getLogger("uvicorn.error").warning(
+            "Tag lowercase migration skipped: %s", exc
+        )
 
     # Start the daily auto-refetch scheduler (no-op if disabled in config).
     start_scheduler()

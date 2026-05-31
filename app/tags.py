@@ -29,27 +29,39 @@ def get_or_create_tag(session: Session, name: str) -> Tag:
 def lowercase_existing_tags(session: Session) -> int:
     """Lowercase all existing tag names, merging any that collide.
 
-    Idempotent: returns the number of tags renamed or merged. Posts pointing at
-    a duplicate (e.g. "Action" when "action" already exists) are repointed at the
-    surviving lowercase tag and the duplicate is deleted.
+    Idempotent. Returns the number of tags renamed or merged. Tags are grouped by
+    their normalized name; one survivor is kept per group (preferring a row that
+    is already lowercase), every other tag in the group has its posts repointed at
+    the survivor and is then deleted, and finally the survivor is renamed. Deletes
+    are flushed before the rename so two rows never momentarily share a name (which
+    would trip the UNIQUE constraint on tags.name).
     """
-    changed = 0
+    groups: dict[str, list[Tag]] = {}
     for tag in session.scalars(select(Tag)).all():
-        norm = normalize_tag(tag.name)
-        if norm == tag.name:
-            continue
+        groups.setdefault(normalize_tag(tag.name), []).append(tag)
 
-        survivor = session.scalar(select(Tag).where(Tag.name == norm))
-        if survivor and survivor.id != tag.id:
-            for post in list(tag.posts):
+    changed = 0
+    for norm, tags in groups.items():
+        if len(tags) == 1 and tags[0].name == norm:
+            continue  # already normalized, nothing to do
+
+        survivor = next((t for t in tags if t.name == norm), tags[0])
+        duplicates = [t for t in tags if t is not survivor]
+
+        for dup in duplicates:
+            for post in list(dup.posts):
                 if survivor not in post.tags:
                     post.tags.append(survivor)
-                post.tags.remove(tag)
-            session.delete(tag)
-        else:
-            tag.name = norm
-        changed += 1
+                post.tags.remove(dup)
+            session.delete(dup)
+            changed += 1
 
-    if changed:
-        session.flush()
+        if duplicates:
+            session.flush()  # apply deletes before freeing the name
+
+        if survivor.name != norm:
+            survivor.name = norm
+            changed += 1
+            session.flush()
+
     return changed
