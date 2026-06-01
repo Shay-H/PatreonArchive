@@ -304,8 +304,22 @@ def _upsert_post(session: Session, creator: Creator, parsed: dict) -> None:
     post.source_path = parsed["source_path"]
     post.can_view = parsed["can_view"]
 
-    post.tags = [_get_or_create_tag(session, tag_name) for tag_name in parsed["tags"]]
-    post.links = [Link(url=url) for url in parsed["links"]]
+    # Tags are add-only: union the raw Patreon tags onto whatever is already
+    # there. The tagger adds genre/type tags out-of-band, so a plain re-sync must
+    # NOT replace the collection (that wiped those tags). Add-only also emits no
+    # DELETEs, avoiding the stale "expected to delete N rows" crash on re-import.
+    existing_tag_names = {tag.name for tag in post.tags}
+    for tag_name in parsed["tags"]:
+        tag = _get_or_create_tag(session, tag_name)
+        if tag.name not in existing_tag_names:
+            post.tags.append(tag)
+            existing_tag_names.add(tag.name)
+
+    # Links are fully derived from the raw JSON, so replace them only when the
+    # set actually changed (avoids per-sync delete/insert churn across all posts).
+    desired_links = list(dict.fromkeys(parsed["links"]))
+    if {link.url for link in post.links} != set(desired_links):
+        post.links = [Link(url=url) for url in desired_links]
 
 
 def sync_creator(session: Session, creator_name: str, run_fetch: bool = True) -> dict:
