@@ -10,11 +10,16 @@ Flow per creator:
   2. Paginate the /api/posts JSON endpoint (with auth cookies) via FlareSolverr.
   3. Stop paginating once a full page of already-known post IDs is found.
   4. Return raw wrapped payloads compatible with parser.normalize_post.
+
+Note: FlareSolverr *sessions* (a warm browser kept across requests) are NOT
+used. A session ignores the per-request auth cookies, so /api/posts returns
+403; each request is issued statelessly with the cookies attached.
 """
 from __future__ import annotations
 
 import json
 import re
+import time
 from pathlib import Path
 from typing import Callable
 
@@ -29,6 +34,11 @@ _POST_FIELDS = (
     "current_user_can_view,is_paid,embed,post_type"
 )
 
+# Retry transient FlareSolverr failures (timeouts, connection blips, an
+# occasional unsolved challenge). Auth failures are never retried.
+_MAX_RETRIES = 3
+_BACKOFF_BASE_SECONDS = 5
+
 
 def _cookie_list(cookie_str: str) -> list[dict]:
     result = []
@@ -40,20 +50,27 @@ def _cookie_list(cookie_str: str) -> list[dict]:
     return result
 
 
-def _fs_get(url: str, cookies: list[dict], timeout_ms: int = 60000) -> dict:
-    """Issue a GET through FlareSolverr, return the solution dict."""
+def _fs_post(payload: dict, timeout_s: float) -> dict:
+    """Low-level FlareSolverr POST. Raises RuntimeError if unreachable."""
     try:
-        resp = requests.post(
-            _FLARESOLVERR_URL,
-            json={"cmd": "request.get", "url": url, "maxTimeout": timeout_ms, "cookies": cookies},
-            timeout=timeout_ms / 1000 + 30,
-        )
+        resp = requests.post(_FLARESOLVERR_URL, json=payload, timeout=timeout_s)
         resp.raise_for_status()
-        result = resp.json()
+        return resp.json()
     except requests.ConnectionError as exc:
         raise RuntimeError(
-            "Cannot reach FlareSolverr at 127.0.0.1:8191 — is the container running?"
+            "Cannot reach FlareSolverr at flaresolverr:8191 — is the container running?"
         ) from exc
+
+
+def _fs_get_once(url: str, cookies: list[dict], timeout_ms: int) -> dict:
+    """Issue a single GET through FlareSolverr, return the solution dict."""
+    payload = {
+        "cmd": "request.get",
+        "url": url,
+        "maxTimeout": timeout_ms,
+        "cookies": cookies,
+    }
+    result = _fs_post(payload, timeout_ms / 1000 + 30)
 
     if result.get("status") != "ok":
         raise RuntimeError(f"FlareSolverr: {result.get('message', result.get('status'))}")
@@ -74,6 +91,26 @@ def _fs_get(url: str, cookies: list[dict], timeout_ms: int = 60000) -> dict:
     return solution
 
 
+def _fs_get(url: str, cookies: list[dict], timeout_ms: int = 60000) -> dict:
+    """GET through FlareSolverr with retry/backoff on transient failures.
+
+    AuthError (expired/invalid cookie) is re-raised immediately — retrying
+    cannot fix it. RuntimeError and request errors are retried.
+    """
+    last_exc: Exception | None = None
+    for attempt in range(_MAX_RETRIES):
+        try:
+            return _fs_get_once(url, cookies, timeout_ms)
+        except AuthError:
+            raise
+        except (requests.RequestException, RuntimeError) as exc:
+            last_exc = exc
+            if attempt < _MAX_RETRIES - 1:
+                time.sleep(_BACKOFF_BASE_SECONDS * (2 ** attempt))
+    assert last_exc is not None
+    raise last_exc
+
+
 def _extract_json_body(html: str) -> str:
     """Strip browser-rendered HTML wrapper from a JSON API response."""
     # Chrome renders bare JSON as <html><body><pre>...</pre></body></html>
@@ -86,6 +123,31 @@ def _extract_json_body(html: str) -> str:
     if start != -1 and end > start:
         return html[start : end + 1]
     raise ValueError("Cannot locate JSON in FlareSolverr response body")
+
+
+def _included_for_post(post: dict, page_included: list[dict]) -> list[dict]:
+    """Return only the `included` items this post references.
+
+    Patreon's /api/posts response returns one shared `included` array for the
+    whole page. Each post links to its own items via relationships[*].data
+    ({type, id} references). Returning the whole page array per post would make
+    parser._normalize_json_api attribute every post's tags to every post and
+    bloat each row's raw_json, so filter down to this post's references.
+    """
+    by_key = {(it.get("type"), str(it.get("id"))): it for it in page_included}
+    result: list[dict] = []
+    seen: set[tuple] = set()
+    for rel in (post.get("relationships") or {}).values():
+        data = rel.get("data") if isinstance(rel, dict) else None
+        refs = [data] if isinstance(data, dict) else data if isinstance(data, list) else []
+        for ref in refs:
+            if not isinstance(ref, dict):
+                continue
+            key = (ref.get("type"), str(ref.get("id")))
+            if key in by_key and key not in seen:
+                result.append(by_key[key])
+                seen.add(key)
+    return result
 
 
 def get_campaign_id(vanity: str, cookies: list[dict]) -> str:
@@ -170,7 +232,7 @@ def scrape_creator(
 
         raw = _fetch_posts_page(campaign_id, cookies, cursor)
         posts = raw.get("data", [])
-        included = raw.get("included", [])
+        page_included = raw.get("included", [])
 
         if not posts:
             break
@@ -179,8 +241,9 @@ def scrape_creator(
             on_progress(f"Page {page}: {len(posts)} posts")
 
         for post in posts:
-            # Wrap in the same envelope as post-api.json so normalize_post works.
-            all_posts.append({"data": post, "included": included})
+            # Wrap in the same envelope as post-api.json (with only this
+            # post's own included items) so normalize_post works.
+            all_posts.append({"data": post, "included": _included_for_post(post, page_included)})
 
         # Incremental stop: all posts on this page already imported → nothing older to find.
         page_ids = {str(p.get("id", "")) for p in posts}
