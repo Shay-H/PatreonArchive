@@ -166,9 +166,9 @@ def start_scheduler() -> None:
 # The daily run
 # ---------------------------------------------------------------------------
 
-def _discover_creators() -> list[str]:
+def _discover_creators() -> list[tuple[str, str]]:
     with SessionLocal() as db:
-        return [c.name for c in db.scalars(select(Creator).order_by(Creator.name)).all()]
+        return [(c.name, c.source_type) for c in db.scalars(select(Creator).order_by(Creator.name)).all()]
 
 
 def _wait(snapshot_fn, *, timeout: int = 7200) -> dict:
@@ -195,20 +195,22 @@ def _run_daily() -> None:
     from app.tagger import start_tagging, get_tag_job_snapshot
 
     try:
-        for name in _discover_creators():
+        for name, source_type in _discover_creators():
             if _load_state().get("paused"):
                 _update_state(last_status="failed", last_message="Paused before completing")
                 return
 
-            if name == settings.cinebingers_creator_name:
+            if source_type == "cinebingers":
                 start_cinebingers_sync(name)
                 _wait(cb_snapshot)
-            elif settings.patreon_fetch_disabled:
+            elif source_type == "patreon" and settings.patreon_fetch_disabled:
                 start_patreon_scrape(name)
                 _wait(lambda: get_patreon_scrape_snapshot(name))
-            else:
+            elif source_type == "patreon":
                 start_sync_job(name, run_fetch=True)
                 _wait(lambda: get_sync_job_snapshot(name))
+            else:
+                _update_state(last_message=f"Skipping '{name}': unknown source_type '{source_type}'")
 
             # An auth failure during the sync pauses us (via on_sync_result).
             if _load_state().get("paused"):

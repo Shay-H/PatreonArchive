@@ -269,7 +269,7 @@ def _get_or_create_creator(session: Session, creator_name: str) -> Creator:
     if creator:
         return creator
 
-    creator = Creator(name=creator_name)
+    creator = Creator(name=creator_name, source_type="patreon")
     session.add(creator)
     session.flush()
     return creator

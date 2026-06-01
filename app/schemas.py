@@ -30,3 +30,4 @@ class TagOut(BaseModel):
 
 class CreatorOut(BaseModel):
     name: str
+    source_type: str

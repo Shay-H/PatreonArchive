@@ -59,7 +59,7 @@ def _update(creator_name: str, **kw) -> None:
 def _get_or_create_creator(session, name: str) -> Creator:
     creator = session.scalar(select(Creator).where(Creator.name == name))
     if not creator:
-        creator = Creator(name=name)
+        creator = Creator(name=name, source_type="patreon")
         session.add(creator)
         session.flush()
     return creator

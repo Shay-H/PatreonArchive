@@ -100,7 +100,7 @@ def _load_cookies() -> dict[str, str] | None:
 def _get_or_create_creator(session, name: str) -> Creator:
     creator = session.scalar(select(Creator).where(Creator.name == name))
     if not creator:
-        creator = Creator(name=name)
+        creator = Creator(name=name, source_type="cinebingers")
         session.add(creator)
         session.flush()
     return creator

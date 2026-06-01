@@ -80,6 +80,22 @@ def startup() -> None:
         except Exception as exc:
             logging.getLogger("uvicorn.error").warning("can_view migration skipped: %s", exc)
 
+    # Add source_type to creators (if missing) and backfill the cinebingers row.
+    if settings.database_url.startswith("sqlite"):
+        try:
+            with engine.begin() as conn:
+                cols = [row[1] for row in conn.execute(text("PRAGMA table_info(creators)"))]
+                if "source_type" not in cols:
+                    conn.execute(text(
+                        "ALTER TABLE creators ADD COLUMN source_type VARCHAR(50) NOT NULL DEFAULT 'patreon'"
+                    ))
+                    conn.execute(
+                        text("UPDATE creators SET source_type = 'cinebingers' WHERE name = :name"),
+                        {"name": settings.cinebingers_creator_name},
+                    )
+        except Exception as exc:
+            logging.getLogger("uvicorn.error").warning("source_type migration skipped: %s", exc)
+
     # One-time normalization: lowercase any legacy mixed-case tags.
     # Best-effort — a migration hiccup must never block app startup.
     try:
@@ -222,7 +238,7 @@ def list_tags(db: Session = Depends(get_db)):
 @app.get("/api/creators", response_model=list[CreatorOut])
 def list_creators(db: Session = Depends(get_db)):
     creators = db.scalars(select(Creator).order_by(Creator.name.asc())).all()
-    return [CreatorOut(name=c.name) for c in creators]
+    return [CreatorOut(name=c.name, source_type=c.source_type) for c in creators]
 
 
 @app.get("/api/posts", response_model=list[PostSummary])

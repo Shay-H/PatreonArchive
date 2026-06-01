@@ -21,6 +21,9 @@ class Creator(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     name: Mapped[str] = mapped_column(String(255), unique=True, index=True)
+    # Integration type: "patreon" | "cinebingers" | any future type.
+    # Drives scheduler routing — add a new value when adding a new integration.
+    source_type: Mapped[str] = mapped_column(String(50), default="patreon", server_default="patreon")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     posts: Mapped[list["Post"]] = relationship(back_populates="creator", cascade="all, delete-orphan")
