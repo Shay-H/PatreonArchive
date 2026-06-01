@@ -22,7 +22,7 @@ import requests
 
 from app.errors import AuthError
 
-_FLARESOLVERR_URL = "http://127.0.0.1:8191/v1"
+_FLARESOLVERR_URL = "http://flaresolverr:8191/v1"
 
 _POST_FIELDS = (
     "title,content,content_json_string,url,published_at,"
