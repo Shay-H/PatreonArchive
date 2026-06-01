@@ -39,10 +39,12 @@ class Settings(BaseSettings):
     # reclaims space — it never causes re-downloads. See app/cleanup.py.
     prune_raw_media_after_sync: bool = True
 
-    # Daily auto-refetch scheduler (app/scheduler.py). Re-syncs every known
-    # creator + tags new posts once a day. Pauses itself on an auth failure.
+    # Auto-refetch scheduler (app/scheduler.py). Re-syncs every known creator
+    # and tags new posts. Pauses itself on an auth failure.
     auto_sync_enabled: bool = True
-    auto_sync_hour: int = 3  # hour of day (0-23, container local time = UTC)
+    auto_sync_hour: int = 3  # hour of day for daily mode (ignored when interval_hours > 0)
+    # Set AUTO_SYNC_INTERVAL_HOURS=3 to run every 3 hours instead of once daily.
+    auto_sync_interval_hours: int = 0  # 0 = daily-at-hour mode
 
     # Creator name routed to the cinebingers scraper instead of patreon-dl.
     cinebingers_creator_name: str = "cinebingers"

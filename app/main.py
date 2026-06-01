@@ -178,6 +178,20 @@ def cinebingers_status():
     return get_cinebingers_snapshot()
 
 
+@app.post("/api/patreon/sync/{creator}", status_code=202)
+def patreon_scrape(creator: str):
+    """Start a FlareSolverr-backed Patreon scrape for creator and import into the database."""
+    from app.patreon_service import start_patreon_scrape
+    return start_patreon_scrape(creator)
+
+
+@app.get("/api/patreon/status/{creator}")
+def patreon_scrape_status(creator: str):
+    """Return the current state of the FlareSolverr Patreon scrape job for creator."""
+    from app.patreon_service import get_patreon_scrape_snapshot
+    return get_patreon_scrape_snapshot(creator)
+
+
 @app.get("/api/sync-log/{creator}", response_class=PlainTextResponse)
 def sync_log(creator: str):
     """Return the full log for a creator sync job."""

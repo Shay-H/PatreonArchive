@@ -191,6 +191,7 @@ def _run_daily() -> None:
     # Imported lazily to avoid an import cycle (those modules notify us back).
     from app.sync_service import start_sync_job, get_sync_job_snapshot
     from app.cinebingers_service import start_cinebingers_sync, get_job_snapshot as cb_snapshot
+    from app.patreon_service import start_patreon_scrape, get_patreon_scrape_snapshot
     from app.tagger import start_tagging, get_tag_job_snapshot
 
     try:
@@ -202,8 +203,11 @@ def _run_daily() -> None:
             if name == settings.cinebingers_creator_name:
                 start_cinebingers_sync(name)
                 _wait(cb_snapshot)
+            elif settings.patreon_fetch_disabled:
+                start_patreon_scrape(name)
+                _wait(lambda: get_patreon_scrape_snapshot(name))
             else:
-                start_sync_job(name, run_fetch=not settings.patreon_fetch_disabled)
+                start_sync_job(name, run_fetch=True)
                 _wait(lambda: get_sync_job_snapshot(name))
 
             # An auth failure during the sync pauses us (via on_sync_result).
@@ -223,6 +227,17 @@ def _run_daily() -> None:
 
 
 def _is_due() -> bool:
+    if settings.auto_sync_interval_hours > 0:
+        last = _load_state().get("last_run")
+        if not last:
+            return True
+        try:
+            last_dt = datetime.fromisoformat(last)
+            elapsed = (datetime.now(timezone.utc) - last_dt.astimezone(timezone.utc)).total_seconds()
+            return elapsed >= settings.auto_sync_interval_hours * 3600
+        except (ValueError, TypeError):
+            return True
+
     now = datetime.now()
     if now.hour != settings.auto_sync_hour:
         return False
