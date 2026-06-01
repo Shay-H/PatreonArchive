@@ -116,6 +116,7 @@ def _upsert_video(session, creator: Creator, video: CinebingersVideo) -> None:
             Post.source_path == source_path,
         )
     )
+    is_new = post is None
     if not post:
         post = Post(creator_id=creator.id, source_path=source_path)
         session.add(post)
@@ -125,7 +126,11 @@ def _upsert_video(session, creator: Creator, video: CinebingersVideo) -> None:
     post.content = ""
     post.can_view = True  # scraped cinebingers videos are always viewable
     post.post_url = video.cinebingers_url
-    post.published_at = None
+    # cinebingers.ca exposes no publish date, which would sort every video to
+    # the bottom of the feed (NULL). Stamp the discovery time on first import so
+    # newly-found videos surface at the top. Never overwrite an existing date.
+    if is_new:
+        post.published_at = datetime.now(timezone.utc)
     post.raw_json = json.dumps({
         "id": video.video_id,
         "title": video.title,
