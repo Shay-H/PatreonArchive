@@ -385,7 +385,10 @@ def _run_sync_job(creator_name: str, run_fetch: bool, source_type: str = "patreo
                 downloaded = scrape_cinebingers(creator_name, on_output=handle_output)
             else:
                 downloaded = run_downloader(creator_name, on_output=handle_output)
-        _update_job(creator_name, fetched=downloaded)
+        # The fetch subprocess (patreon-dl) has now exited. Clear running_pid so
+        # the snapshot check doesn't see "running + dead pid" during the import
+        # phase and falsely report "Background sync process exited unexpectedly".
+        _update_job(creator_name, fetched=downloaded, running_pid=None)
 
         creator_root = settings.raw_root / creator_name
         post_info_files = _find_post_info_files(creator_root)
