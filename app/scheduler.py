@@ -203,7 +203,7 @@ def _run_daily() -> None:
                 start_cinebingers_sync(name)
                 _wait(cb_snapshot)
             else:
-                start_sync_job(name, run_fetch=True)
+                start_sync_job(name, run_fetch=not settings.patreon_fetch_disabled)
                 _wait(lambda: get_sync_job_snapshot(name))
 
             # An auth failure during the sync pauses us (via on_sync_result).

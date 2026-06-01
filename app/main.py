@@ -157,6 +157,8 @@ def sync_status(creator: str, db: Session = Depends(get_db)):
 
 @app.post("/api/sync/{creator}", response_model=SyncResult, status_code=202)
 def sync(creator: str, fetch: bool = Query(default=True)):
+    if fetch and settings.patreon_fetch_disabled:
+        fetch = False
     job = start_sync_job(creator, run_fetch=fetch)
     if job.get("status") == "running":
         return {"creator": creator, "downloaded": False, "imported_posts": 0}

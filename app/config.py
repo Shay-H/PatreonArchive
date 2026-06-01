@@ -47,6 +47,11 @@ class Settings(BaseSettings):
     # Creator name routed to the cinebingers scraper instead of patreon-dl.
     cinebingers_creator_name: str = "cinebingers"
 
+    # When true, skip patreon-dl fetch entirely (import-only). Set on the VPS
+    # while Cloudflare blocks datacenter IPs; the FlareSolverr scraper feeds
+    # posts in via its own path.
+    patreon_fetch_disabled: bool = False
+
 
 settings = Settings()
 settings.data_root.mkdir(parents=True, exist_ok=True)
