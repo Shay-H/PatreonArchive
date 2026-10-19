@@ -249,13 +249,26 @@ def scrape_all_cinebingers_videos(
                 # Empty page means we've reached the end
                 break
 
+            # With NEWEST sort, the first known video we encounter means everything
+            # from that point on is already imported — trim and stop early.
+            if known_ids is not None:
+                new_videos = []
+                hit_known = False
+                for v in videos:
+                    if v.video_id in known_ids:
+                        hit_known = True
+                        break
+                    new_videos.append(v)
+                videos = new_videos
+                if not videos and not all_videos:
+                    # First page already fully known — nothing to do
+                    break
+
             all_videos.extend(videos)
             if on_page_complete:
                 on_page_complete(page, len(videos))
 
-            # Early stop: if every video on this page is already imported, there
-            # are no newer videos to fetch on later pages.
-            if known_ids is not None and all(v.video_id in known_ids for v in videos):
+            if known_ids is not None and hit_known:
                 break
 
             # Add delay before next request (rate limiting)

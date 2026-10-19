@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tracked posts · {{ app_name }}</title>
+  <link rel="stylesheet" href="/static/styles.css?v={{ asset_version }}">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div>
+        <h1>Tracked posts</h1>
+        <p>Posts re-checked on every sync, with the saved copy refreshed when they change.</p>
+      </div>
+      <div class="topbar-right">
+        <a class="ghost back-link" href="/">&larr; Back to archive</a>
+        {% if username %}
+        <div class="user-box">
+          <span class="muted user-name">{{ username }}</span>
+          <form method="post" action="/api/logout" class="logout-form">
+            <button type="submit" class="ghost logout-btn">Log out</button>
+          </form>
+        </div>
+        {% endif %}
+      </div>
+    </header>
+
+    <section class="card">
+      <div class="section-header">
+        <h2>Add a post to tracking</h2>
+      </div>
+      <p class="muted">
+        Search the archive for a post you want kept current — a master post, an index,
+        anything the creator keeps editing after publishing.
+      </p>
+      <div class="row">
+        <div class="input-clear">
+          <input id="addSearch" placeholder="Search archived post titles">
+        </div>
+        <select id="addCreator" aria-label="Filter by source">
+          <option value="">All sources</option>
+        </select>
+      </div>
+      <ul id="addResults" class="tracked-list"></ul>
+    </section>
+
+    <section class="card">
+      <div class="section-header">
+        <h2>Currently tracked <span id="trackedCount" class="tab-count">0</span></h2>
+        <button type="button" id="refreshNow">Check all now</button>
+      </div>
+      <p id="refreshStatus" class="status hidden"></p>
+      <ul id="trackedList" class="tracked-list"></ul>
+    </section>
+  </div>
+
+  <script src="/static/tracked.js?v={{ asset_version }}"></script>
+</body>
+</html>

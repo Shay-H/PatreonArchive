@@ -189,7 +189,6 @@ def _run_daily() -> None:
     _update_state(last_status="running", last_run=_utc_now(), last_message="Daily sync started")
 
     # Imported lazily to avoid an import cycle (those modules notify us back).
-    from app.sync_service import start_sync_job, get_sync_job_snapshot
     from app.cinebingers_service import start_cinebingers_sync, get_job_snapshot as cb_snapshot
     from app.patreon_service import start_patreon_scrape, get_patreon_scrape_snapshot
     from app.tagger import start_tagging, get_tag_job_snapshot
@@ -203,12 +202,11 @@ def _run_daily() -> None:
             if source_type == "cinebingers":
                 start_cinebingers_sync(name)
                 _wait(cb_snapshot)
-            elif source_type == "patreon" and settings.patreon_fetch_disabled:
+            elif source_type == "patreon":
+                # patreon-dl is Cloudflare-blocked on the server; all Patreon
+                # creators sync via the FlareSolverr scraper.
                 start_patreon_scrape(name)
                 _wait(lambda: get_patreon_scrape_snapshot(name))
-            elif source_type == "patreon":
-                start_sync_job(name, run_fetch=True)
-                _wait(lambda: get_sync_job_snapshot(name))
             else:
                 _update_state(last_message=f"Skipping '{name}': unknown source_type '{source_type}'")
 

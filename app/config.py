@@ -1,3 +1,4 @@
+import secrets
 from pathlib import Path
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -54,10 +55,46 @@ class Settings(BaseSettings):
     # posts in via its own path.
     patreon_fetch_disabled: bool = False
 
+    # --- Login / sessions -------------------------------------------------
+    # Signing key for the session cookie. Leave blank to auto-generate and
+    # persist one under data/ (see get_session_secret) so it survives restarts.
+    session_secret: str = ""
+    # Set SESSION_COOKIE_SECURE=true in production (behind nginx TLS) so the
+    # cookie is only sent over HTTPS. Left False so local HTTP dev works.
+    session_cookie_secure: bool = False
+    # How long a login lasts, in seconds (default 30 days).
+    session_max_age: int = 60 * 60 * 24 * 30
+
 
 settings = Settings()
 settings.data_root.mkdir(parents=True, exist_ok=True)
 settings.raw_root.mkdir(parents=True, exist_ok=True)
+
+
+def get_session_secret() -> str:
+    """Return the session signing key.
+
+    Prefers an explicit SESSION_SECRET from the environment/.env. Otherwise
+    generates a random key once and persists it to data/.session_secret so
+    sessions stay valid across restarts and container rebuilds (the data dir is
+    a mounted volume).
+    """
+    if settings.session_secret.strip():
+        return settings.session_secret.strip()
+    secret_file = settings.data_root / ".session_secret"
+    try:
+        existing = secret_file.read_text(encoding="utf-8").strip()
+        if existing:
+            return existing
+    except OSError:
+        pass
+    secret = secrets.token_hex(32)
+    try:
+        secret_file.write_text(secret, encoding="utf-8")
+        secret_file.chmod(0o600)
+    except OSError:
+        pass
+    return secret
 
 METADATA_ONLY_CONFIG_FILE = (settings.data_root / "patreon-dl-metadata-only.conf").resolve()
 

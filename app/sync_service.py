@@ -418,6 +418,18 @@ def _run_sync_job(creator_name: str, run_fetch: bool, source_type: str = "patreo
 
             db_session.commit()
 
+        # Apply TMDB genre/type tags to the just-imported posts. Scoped to this
+        # creator and to posts lacking a movie/tv tag, so it stays cheap on
+        # re-syncs. Tagging failures must never fail the sync itself.
+        try:
+            from app.tagger import tag_untagged_posts
+            _record_message(creator_name, "Tagging newly imported posts…")
+            tagged = tag_untagged_posts(creator_name)
+            if tagged:
+                _record_message(creator_name, f"Tagged {tagged} new posts")
+        except Exception as tag_exc:
+            handle_output(f"WARNING: auto-tagging failed: {tag_exc}")
+
         if settings.prune_raw_media_after_sync:
             try:
                 prune_raw_media(creator_name, on_output=handle_output)

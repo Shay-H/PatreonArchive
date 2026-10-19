@@ -21,6 +21,10 @@ PRUNE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp"}
 # Never touch patreon-dl's status caches — they keep syncs incremental.
 _CACHE_DIR = ".patreon-dl"
 
+# Archived content-mode attachments live here (see patreon_service._download_post_attachments).
+# These files ARE the artifact, so they must never be pruned even when they're images.
+_ATTACHMENTS_DIR = "attachments"
+
 
 def prune_raw_media(
     creator: str | None = None,
@@ -42,7 +46,7 @@ def prune_raw_media(
                 continue
             if path.suffix.lower() not in PRUNE_EXTENSIONS:
                 continue
-            if _CACHE_DIR in path.parts:
+            if _CACHE_DIR in path.parts or _ATTACHMENTS_DIR in path.parts:
                 continue
             try:
                 size = path.stat().st_size

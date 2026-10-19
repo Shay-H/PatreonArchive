@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{{ app_name }}</title>
-  <link rel="stylesheet" href="/static/styles.css">
+  <link rel="stylesheet" href="/static/styles.css?v={{ asset_version }}">
 </head>
 <body>
   <div class="app-shell">
@@ -13,7 +13,18 @@
         <h1>{{ app_name }}</h1>
         <p>Download, index, and search Patreon posts you already have access to.</p>
       </div>
-      <div class="pill" id="configPill">Checking config…</div>
+      <div class="topbar-right">
+        <a class="ghost back-link" href="/tracked">Tracked posts</a>
+        <div class="pill" id="configPill">Checking config…</div>
+        {% if username %}
+        <div class="user-box">
+          <span class="muted user-name">{{ username }}</span>
+          <form method="post" action="/api/logout" class="logout-form">
+            <button type="submit" class="ghost logout-btn">Log out</button>
+          </form>
+        </div>
+        {% endif %}
+      </div>
     </header>
 
     <details class="card ingest" id="ingestCard">
@@ -24,6 +35,11 @@
         <div class="row">
           <input id="creatorInput" list="creatorList" placeholder="Creator vanity or full URL (e.g. cinejump)">
           <datalist id="creatorList"></datalist>
+          <select id="modeSelect" title="What to archive for this creator">
+            <option value="video">Video archive</option>
+            <option value="content">Content archive (posts + files)</option>
+            <option value="links">Links archive (posts + links, no downloads)</option>
+          </select>
           <label class="checkline">
             <input id="downloadToggle" type="checkbox" checked>
             Fetch from Patreon
@@ -52,15 +68,19 @@
       <div class="search-layout">
         <div class="search-inputs">
           <div class="row">
-            <input id="query" placeholder="Search titles">
+            <div class="input-clear">
+              <input id="query" placeholder="Search titles">
+              <button type="button" id="queryClear" class="clear-btn hidden" aria-label="Clear search">&times;</button>
+            </div>
           </div>
           <div class="row">
-            <input id="tag" placeholder="Tags, comma-separated (e.g. anime, action)">
+            <input id="tag" placeholder="Add a tag filter (press Enter)">
             <select id="creatorFilter">
               <option value="">All sources</option>
             </select>
             <button id="searchButton">Search</button>
           </div>
+          <div id="tagFilters" class="tag-filters-bar hidden"></div>
         </div>
         <div class="type-filters">
           <span class="filter-label">Type</span>
@@ -92,8 +112,18 @@
     <main class="content-grid">
       <section class="card results">
         <div class="section-header">
-          <h2>Posts</h2>
-          <span id="resultsCount" class="muted">0 results</span>
+          <div class="tabs" role="tablist">
+            <button type="button" class="tab active" id="tabPosts" role="tab" aria-selected="true">Posts</button>
+            <button type="button" class="tab" id="tabFavourites" role="tab" aria-selected="false">
+              Favourites <span id="favCount" class="tab-count">0</span>
+            </button>
+          </div>
+          <div class="results-controls">
+            <select id="favCreatorFilter" class="hidden" aria-label="Filter favourites by source">
+              <option value="">All sources</option>
+            </select>
+            <span id="resultsCount" class="muted">0 results</span>
+          </div>
         </div>
         <ul id="postList" class="post-list"></ul>
       </section>
@@ -101,11 +131,20 @@
       <section class="card detail">
         <h2 id="postTitle">Select a post</h2>
         <div id="postMeta" class="muted"></div>
+        <div class="detail-actions">
+          <button type="button" id="trackToggle" class="ghost track-toggle">Track for updates</button>
+          <span id="trackInfo" class="muted track-info"></span>
+        </div>
         <a id="postSource" class="muted hidden" target="_blank" rel="noopener noreferrer">Open original post</a>
         <div id="postEmbed" class="hidden"></div>
+        <div id="postContentHtml" class="post-html hidden"></div>
         <pre id="postBody"></pre>
-        <h3>Links</h3>
+        <h3 id="attachmentsHeading" class="hidden">Attachments</h3>
+        <ul id="postAttachments" class="attachment-list hidden"></ul>
+        <h3 id="linksHeading">Links</h3>
         <ul id="postLinks"></ul>
+        <h3 id="patreonLinksHeading" class="muted hidden">Patreon links</h3>
+        <ul id="postPatreonLinks" class="patreon-links hidden"></ul>
       </section>
     </main>
   </div>
@@ -121,7 +160,7 @@
     </div>
   </div>
 
-  <script src="/static/app.js"></script>
-  <script src="/static/cinebingers.js"></script>
+  <script src="/static/app.js?v={{ asset_version }}"></script>
+  <script src="/static/cinebingers.js?v={{ asset_version }}"></script>
 </body>
 </html>

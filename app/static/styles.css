@@ -28,6 +28,81 @@ body {
   gap: 1rem;
 }
 
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.user-box {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.user-name {
+  font-size: 0.9rem;
+}
+
+.logout-form {
+  margin: 0;
+}
+
+.logout-btn {
+  padding: 0.35rem 0.7rem;
+  font-size: 0.85rem;
+}
+
+/* Login page */
+.login-shell {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.login-card {
+  width: 100%;
+  max-width: 360px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.login-card h1 {
+  margin-bottom: 0.1rem;
+}
+
+.login-card .muted {
+  margin: 0;
+}
+
+.login-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.85rem;
+  color: #b8c7ff;
+}
+
+.login-field input {
+  min-width: 0;
+  width: 100%;
+}
+
+.login-error {
+  margin: 0;
+  padding: 0.5rem 0.7rem;
+  border-radius: 8px;
+  background: rgba(156, 42, 42, 0.25);
+  border: 1px solid #7a2a2a;
+  color: #ffb3b3;
+  font-size: 0.88rem;
+}
+
 h1, h2, h3 {
   margin: 0;
 }
@@ -210,6 +285,89 @@ button.ghost {
   margin-top: 0;
 }
 
+/* Search input with inline clear (×) button */
+.input-clear {
+  position: relative;
+  display: flex;
+  flex: 1;
+  min-width: 220px;
+}
+
+.input-clear input {
+  width: 100%;
+  padding-right: 2.2rem;
+}
+
+.clear-btn {
+  position: absolute;
+  right: 0.4rem;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  color: #8ea1dd;
+  font-size: 1.15rem;
+  line-height: 1;
+  padding: 0.2rem 0.4rem;
+  border-radius: 999px;
+}
+
+.clear-btn:hover {
+  color: #eaf0ff;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* Active tag filters shown as removable bubbles */
+.tag-filters-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.6rem;
+}
+
+.tag-clear-all {
+  background: transparent;
+  border: none;
+  color: #9aacdd;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0.2rem 0.4rem;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.tag-clear-all:hover {
+  color: #eaf0ff;
+}
+
+.tag-bubble {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  background: #1f2c5c;
+  border: 1px solid #3c4a8d;
+  border-radius: 999px;
+  padding: 0.2rem 0.35rem 0.2rem 0.7rem;
+  font-size: 0.82rem;
+  color: #cdd9ff;
+}
+
+.tag-bubble-x {
+  background: transparent;
+  border: none;
+  color: #9aacdd;
+  font-size: 1rem;
+  line-height: 1;
+  padding: 0 0.25rem;
+  border-radius: 999px;
+}
+
+.tag-bubble-x:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.14);
+}
+
 .type-filters {
   display: flex;
   flex-direction: column;
@@ -264,6 +422,41 @@ button.ghost {
   margin-bottom: 0.75rem;
 }
 
+.tabs {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.tab {
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  padding: 0.35rem 0.85rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #8ea1dd;
+}
+
+.tab:hover {
+  color: #cdd9ff;
+}
+
+.tab.active {
+  background: #1f2c5c;
+  border-color: #3c4a8d;
+  color: #eaf0ff;
+}
+
+.tab-count {
+  display: inline-block;
+  min-width: 1.3em;
+  padding: 0 0.35em;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  font-size: 0.78rem;
+  text-align: center;
+}
+
 .muted {
   color: #9aacdd;
 }
@@ -311,9 +504,11 @@ button.ghost {
 }
 
 .post-item {
+  position: relative;
   border: 1px solid #2d3872;
   border-radius: 10px;
   padding: 0.7rem;
+  padding-right: 2.6rem;
   background: #0d1430;
 }
 
@@ -321,6 +516,183 @@ button.ghost {
   color: #aac0ff;
   text-decoration: none;
   font-weight: 600;
+}
+
+.post-item.empty-note {
+  padding-right: 0.7rem;
+  color: #9aacdd;
+}
+
+/* Favourite star toggle on each post card */
+.fav-btn {
+  position: absolute;
+  top: 0.45rem;
+  right: 0.45rem;
+  padding: 0.2rem;
+  background: transparent;
+  border: none;
+  border-radius: 999px;
+  line-height: 0;
+  color: #5a6fad;
+}
+
+.fav-btn svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linejoin: round;
+  transition: fill 0.15s, stroke 0.15s, transform 0.15s;
+}
+
+.fav-btn:hover svg {
+  transform: scale(1.12);
+  stroke: #ffd57a;
+}
+
+.fav-btn.on {
+  color: #ffcf4d;
+}
+
+.fav-btn.on svg {
+  fill: #ffcf4d;
+  stroke: #ffcf4d;
+}
+
+/* Track toggle: sits beside the favourite star on each card. Same affordance
+   as .fav-btn, in a cooler colour so the two states read apart at a glance. */
+.track-btn {
+  position: absolute;
+  top: 0.45rem;
+  right: 2.2rem;
+  padding: 0.2rem;
+  background: transparent;
+  border: none;
+  border-radius: 999px;
+  line-height: 0;
+  color: #5a6fad;
+}
+
+.track-btn svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: stroke 0.15s, transform 0.15s;
+}
+
+.track-btn:hover svg {
+  transform: rotate(45deg);
+  stroke: #7fd4a8;
+}
+
+.track-btn.on {
+  color: #51c88a;
+}
+
+/* "This post changed since we archived it" marker on a card. */
+.updated-badge {
+  background: #16331f;
+  border: 1px solid #27613c;
+  color: #7fd4a8;
+  border-radius: 4px;
+  padding: 0.05rem 0.35rem;
+  font-size: 0.72rem;
+  white-space: nowrap;
+}
+
+.detail-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  margin: 0.5rem 0 0.25rem;
+}
+
+.track-toggle.on {
+  border-color: #27613c;
+  color: #7fd4a8;
+}
+
+.track-info {
+  font-size: 0.8rem;
+}
+
+.results-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+/* ------------------------------------------------------------------ */
+/* Tracked-posts manage page                                           */
+/* ------------------------------------------------------------------ */
+
+.back-link {
+  text-decoration: none;
+  padding: 0.35rem 0.7rem;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+
+.tracked-list {
+  list-style: none;
+  padding-left: 0;
+  margin: 0.5rem 0 0;
+}
+
+.tracked-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding: 0.6rem 0;
+  border-bottom: 1px solid #1d2a57;
+}
+
+.tracked-item.stopped {
+  opacity: 0.75;
+}
+
+.tracked-main {
+  min-width: 0;
+  flex: 1 1 22rem;
+}
+
+.tracked-title {
+  color: #cfe0ff;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.tracked-title:hover {
+  text-decoration: underline;
+}
+
+.tracked-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+/* Why tracking gave up — usually a lapsed pledge. The archived copy is kept,
+   so this is informational, not an error. */
+.tracked-stopped-note {
+  margin-top: 0.3rem;
+  font-size: 0.82rem;
+  color: #f0c274;
+}
+
+.ghost.danger:hover {
+  border-color: #7a3030;
+  color: #ff9a9a;
+}
+
+.empty-note {
+  color: #8ea1dd;
+  font-style: italic;
 }
 
 .tag-line {
@@ -341,6 +713,17 @@ button.ghost {
   color: #8ea1dd;
 }
 
+.tag.clickable {
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.tag.clickable:hover {
+  background: #29356f;
+  border-color: #3c4a8d;
+  color: #cdd9ff;
+}
+
 #postBody {
   white-space: pre-wrap;
   word-break: break-word;
@@ -349,6 +732,52 @@ button.ghost {
   border-radius: 10px;
   padding: 0.75rem;
   min-height: 260px;
+}
+
+/* Rich HTML body for content-mode posts. */
+.post-html {
+  background: #0b122e;
+  border: 1px solid #29356f;
+  border-radius: 10px;
+  padding: 0.75rem 1rem;
+  min-height: 260px;
+  word-break: break-word;
+  line-height: 1.6;
+}
+.post-html img { max-width: 100%; height: auto; border-radius: 8px; }
+.post-html a { color: #8ea2ff; }
+.post-html pre {
+  white-space: pre-wrap;
+  background: #060b22;
+  border-radius: 8px;
+  padding: 0.6rem;
+  overflow-x: auto;
+}
+.post-html blockquote {
+  margin: 0.6rem 0;
+  padding-left: 0.9rem;
+  border-left: 3px solid #29356f;
+  color: #c7cfff;
+}
+
+/* Downloadable attachments list (content-mode posts). */
+.attachment-list {
+  list-style: none;
+  padding-left: 0;
+}
+.attachment-list li {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.25rem 0;
+}
+.attachment-list a { color: #8ea2ff; }
+
+/* Links back into Patreon, listed under the off-site ones and dimmed so the
+   links worth following read first. */
+.patreon-links a {
+  color: #8c93a8;
+  font-size: 0.9em;
 }
 
 #postEmbed {

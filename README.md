@@ -48,13 +48,69 @@ This project creates a local service to:
 
 6. Open http://127.0.0.1:8000
 
+## Accounts / login
+
+The web UI is gated by a login. There is **no public sign-up** — accounts are created
+from the command line:
+
+```
+python -m app.manage_users add <username>      # prompts for a password
+python -m app.manage_users list
+python -m app.manage_users passwd <username>
+python -m app.manage_users delete <username>
+```
+
+Inside Docker, run it against the container:
+
+```
+docker compose exec app python -m app.manage_users add shay
+```
+
+Sessions are signed cookies (only the user id is stored). The signing key comes from
+`SESSION_SECRET` in `.env`; if unset, one is generated and persisted to
+`data/.session_secret` so logins survive restarts. In production (behind nginx TLS) set
+`SESSION_COOKIE_SECURE=true` so the cookie is HTTPS-only.
+
+Favourites (the ☆ on each post, and the **Favourites** tab) are stored in the database
+against your account, so they follow you across browsers and devices.
+
+## Archive modes
+
+Each creator is archived in one of three modes, picked from the dropdown next to the
+creator box when you first sync them (and changeable by re-syncing with a different
+mode). The mode decides what the archive actually keeps:
+
+| Mode | Post body | Links | Attached files | TMDB genre tags |
+| --- | --- | --- | --- | --- |
+| **Video archive** | plain text | yes | — | yes |
+| **Content archive** | formatted HTML | yes | **downloaded** to `data/raw/` | no |
+| **Links archive** | formatted HTML | yes | listed, **never downloaded** | no |
+
+**Links archive** is for creators whose files are far too large to mirror — battlemap
+packs, VTT bundles, 4K asset archives. It keeps the post exactly as written (headings,
+lists, emphasis) plus every URL the post points at, and records attachments as metadata
+only: you see the filename and size, and follow the original post to fetch them.
+
+Links are captured from all four places Patreon hides them — `<a href>` in the body,
+bare URLs in the text, hyperlink marks in Patreon's rich-text source, and the post
+embed — then split on display, with off-Patreon links (Drive folders, storefronts,
+mirrors) listed first and Patreon's own self-links dimmed below them.
+
+Video posts with no links are hidden from listings; content and links posts are not,
+since their value is the body rather than something watchable.
+
 ## API quick reference
 
 - `POST /api/sync/{creator}`: download + import creator posts (Patreon)
+- `POST /api/patreon/sync/{creator}?mode=video|content|links`: FlareSolverr scrape +
+  import, setting the creator's archive mode (see **Archive modes** above)
 - `POST /api/sync/cinebingers/{collection_name}`: scrape and import cinebingers.ca videos
 - `GET /api/posts?q=...&creator=...&tag=...`
 - `GET /api/posts/{id}`
 - `GET /api/tags`
+- `POST /api/login` / `POST /api/logout`: session login/logout (form-encoded)
+- `GET /api/favourites`: the logged-in user's favourited posts
+- `POST /api/favourites/{post_id}` / `DELETE /api/favourites/{post_id}`: star / unstar
 
 ## Cinebingers.ca Source
 

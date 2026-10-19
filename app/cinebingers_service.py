@@ -120,6 +120,9 @@ def _upsert_video(session, creator: Creator, video: CinebingersVideo) -> None:
     if not post:
         post = Post(creator_id=creator.id, source_path=source_path)
         session.add(post)
+        title_changed = True
+    else:
+        title_changed = post.title != video.title
 
     post.patreon_post_id = video.video_id
     post.title = video.title
@@ -139,7 +142,12 @@ def _upsert_video(session, creator: Creator, video: CinebingersVideo) -> None:
         "source": "cinebingers.ca",
     })
 
-    post.tags = [_get_or_create_tag(session, "cinebingers")]
+    # Add the cinebingers tag only if it isn't already present
+    cinebingers_tag = _get_or_create_tag(session, "cinebingers")
+    if cinebingers_tag not in post.tags:
+        post.tags.append(cinebingers_tag)
+    if title_changed:
+        post.auto_tagged_at = None
     post.links = [Link(url=video.youtube_url)]
 
 
@@ -191,6 +199,13 @@ def _run(creator_name: str) -> None:
                 _upsert_video(db, creator, video)
                 imported += 1
             db.commit()
+
+        try:
+            from app.tagger import tag_untagged_posts
+            _update(last_message="Tagging newly imported videos…")
+            tag_untagged_posts(creator_name)
+        except Exception:
+            pass
 
         _update(
             status="completed",
