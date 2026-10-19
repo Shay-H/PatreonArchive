@@ -618,10 +618,20 @@ button.ghost {
   font-size: 0.8rem;
 }
 
-.results-controls {
+/* Favourites source filter. On its own row under the tabs rather than inside
+   the header, which left the select fighting the tabs and the result count
+   for the same line. */
+.fav-filter-bar {
   display: flex;
   align-items: center;
-  gap: 0.6rem;
+  gap: 0.5rem;
+  margin: 0 0 0.75rem;
+  padding-bottom: 0.7rem;
+  border-bottom: 1px solid #1d2a57;
+}
+
+.fav-filter-bar select {
+  min-width: 11rem;
 }
 
 /* ------------------------------------------------------------------ */

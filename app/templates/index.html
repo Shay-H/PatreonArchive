@@ -118,12 +118,13 @@
               Favourites <span id="favCount" class="tab-count">0</span>
             </button>
           </div>
-          <div class="results-controls">
-            <select id="favCreatorFilter" class="hidden" aria-label="Filter favourites by source">
-              <option value="">All sources</option>
-            </select>
-            <span id="resultsCount" class="muted">0 results</span>
-          </div>
+          <span id="resultsCount" class="muted">0 results</span>
+        </div>
+        <div id="favFilterBar" class="fav-filter-bar hidden">
+          <span class="filter-label">Source</span>
+          <select id="favCreatorFilter" aria-label="Filter favourites by source">
+            <option value="">All sources</option>
+          </select>
         </div>
         <ul id="postList" class="post-list"></ul>
       </section>

@@ -519,7 +519,7 @@ async function setView(view) {
   // The search controls only apply to the Posts view; favourites get their
   // own source filter in the results header instead.
   document.querySelector('.search-controls').classList.toggle('hidden', view === 'favourites');
-  document.getElementById('favCreatorFilter').classList.toggle('hidden', view !== 'favourites');
+  document.getElementById('favFilterBar').classList.toggle('hidden', view !== 'favourites');
 
   if (view === 'favourites') {
     await loadFavourites(); // re-sync with the DB before rendering
