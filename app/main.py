@@ -18,7 +18,7 @@ from starlette.middleware.sessions import SessionMiddleware
 from sqlalchemy import and_, desc, func, or_, select, text, exists
 from sqlalchemy.orm import Session, joinedload, selectinload, aliased
 
-from app.auth import authenticate, is_public_path, require_user
+from app.auth import authenticate, is_feed_request, is_public_path, require_user
 from app.config import settings, get_session_secret
 from app.database import SessionLocal, engine
 from app.models import Attachment, Base, Creator, Favourite, Post, Tag, User, post_tags
@@ -67,7 +67,7 @@ async def auth_gate(request: Request, call_next):
     that SessionMiddleware ends up outermost and request.session is populated
     by the time this runs.
     """
-    if is_public_path(request.url.path) or request.session.get("user_id"):
+    if is_public_path(request.url.path) or request.session.get("user_id") or is_feed_request(request):
         return await call_next(request)
     if request.url.path.startswith("/api/"):
         return JSONResponse({"detail": "Not authenticated"}, status_code=401)
@@ -745,6 +745,24 @@ def get_post(post_id: int, db: Session = Depends(get_db)):
             for a in post.attachments
         ],
     )
+
+
+@app.get("/api/posts/{post_id}/links")
+def get_post_links(post_id: int, db: Session = Depends(get_db)):
+    """A post's off-site links, for machine clients polling a tracked post.
+
+    Reachable with a session or with the FEED_TOKEN bearer (see auth_gate).
+    """
+    post = db.scalar(select(Post).where(Post.id == post_id).options(joinedload(Post.links)))
+    if not post:
+        raise HTTPException(status_code=404, detail="Post not found")
+    links = sorted(post.links, key=lambda link: link.id)
+    return {
+        "post_id": post.id,
+        "title": post.title,
+        "updated_at": post.content_updated_at or post.updated_at,
+        "links": [link.url for link in links if not is_patreon_url(link.url)],
+    }
 
 
 @app.get("/api/posts/{post_id}/attachments/{attachment_id}")

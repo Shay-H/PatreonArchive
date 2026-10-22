@@ -49,6 +49,7 @@ def client(tmp_path, monkeypatch):
     # production, behind nginx TLS) would stop the session cookie from ever
     # coming back and fail every logged-in assertion below.
     monkeypatch.setenv("SESSION_COOKIE_SECURE", "false")
+    monkeypatch.setenv("FEED_TOKEN", "feed-secret")
 
     # Reload config + database so they pick up the patched env, then main.
     import app.config
@@ -60,7 +61,7 @@ def client(tmp_path, monkeypatch):
     import app.main
     main = importlib.reload(app.main)
 
-    from app.models import Base, Creator, Post, User
+    from app.models import Base, Creator, Link, Post, User
     Base.metadata.create_all(bind=app.database.engine)
 
     Session = sessionmaker(bind=app.database.engine)
@@ -69,7 +70,12 @@ def client(tmp_path, monkeypatch):
         creator = Creator(name="cre", source_type="patreon", archive_mode="content")
         db.add(creator)
         db.flush()
-        db.add(Post(creator_id=creator.id, title="A post", content="body", source_path="p1"))
+        post = Post(creator_id=creator.id, title="A post", content="body", source_path="p1")
+        db.add(post)
+        db.flush()
+        db.add(Link(post_id=post.id, url="https://example.com/a/module.json"))
+        db.add(Link(post_id=post.id, url="https://www.patreon.com/posts/123"))
+        db.add(Link(post_id=post.id, url="https://example.com/b/module.json"))
         db.commit()
 
     with TestClient(main.app) as c:
@@ -113,3 +119,41 @@ def test_logout_clears_session(client):
     assert client.get("/api/favourites").status_code == 200
     client.post("/api/logout")
     assert client.get("/api/favourites").status_code == 401
+
+
+# --- Feed token ---------------------------------------------------------------
+
+FEED_AUTH = {"Authorization": "Bearer feed-secret"}
+
+
+def test_feed_token_reads_post_links(client):
+    resp = client.get("/api/posts/1/links", headers=FEED_AUTH)
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["post_id"] == 1
+    # Insertion order, Patreon self-links dropped.
+    assert body["links"] == [
+        "https://example.com/a/module.json",
+        "https://example.com/b/module.json",
+    ]
+
+
+def test_feed_token_is_scoped_to_links_endpoint(client):
+    assert client.get("/api/posts", headers=FEED_AUTH).status_code == 401
+    assert client.get("/api/posts/1", headers=FEED_AUTH).status_code == 401
+    assert client.delete("/api/posts/1/track", headers=FEED_AUTH).status_code == 401
+
+
+def test_feed_rejects_missing_or_wrong_token(client):
+    assert client.get("/api/posts/1/links").status_code == 401
+    bad = {"Authorization": "Bearer nope"}
+    assert client.get("/api/posts/1/links", headers=bad).status_code == 401
+
+
+def test_feed_unknown_post_is_404(client):
+    assert client.get("/api/posts/9999/links", headers=FEED_AUTH).status_code == 404
+
+
+def test_links_endpoint_works_with_session(client):
+    client.post("/api/login", data={"username": "tester", "password": "pw"})
+    assert client.get("/api/posts/1/links").status_code == 200

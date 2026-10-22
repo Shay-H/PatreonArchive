@@ -6,12 +6,14 @@ Starlette's SessionMiddleware (wired up in app/main.py).
 """
 import hashlib
 import hmac
+import re
 import secrets
 
 from fastapi import Depends, HTTPException, Request
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.config import settings
 from app.database import SessionLocal
 from app.models import User
 
@@ -49,8 +51,21 @@ def verify_password(password: str, stored: str) -> bool:
     return hmac.compare_digest(digest, expected)
 
 
+# Paths a FEED_TOKEN bearer may read without a session.
+FEED_PATH_RE = re.compile(r"^/api/posts/\d+/links$")
+
+
 def is_public_path(path: str) -> bool:
     return path in PUBLIC_PATHS or any(path.startswith(p) for p in PUBLIC_PREFIXES)
+
+
+def is_feed_request(request: Request) -> bool:
+    """True for a GET to a feed path carrying the configured FEED_TOKEN."""
+    token = settings.feed_token.strip()
+    if not token or request.method != "GET" or not FEED_PATH_RE.match(request.url.path):
+        return False
+    header = request.headers.get("authorization", "")
+    return hmac.compare_digest(header.encode(), f"Bearer {token}".encode())
 
 
 def authenticate(db: Session, username: str, password: str) -> User | None:

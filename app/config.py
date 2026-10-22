@@ -65,6 +65,11 @@ class Settings(BaseSettings):
     # How long a login lasts, in seconds (default 30 days).
     session_max_age: int = 60 * 60 * 24 * 30
 
+    # Bearer token for machine clients (e.g. the homelib map fetcher) that read
+    # a post's link list via GET /api/posts/{id}/links without a login session.
+    # Grants that one read-only endpoint and nothing else. Blank disables it.
+    feed_token: str = ""
+
 
 settings = Settings()
 settings.data_root.mkdir(parents=True, exist_ok=True)
