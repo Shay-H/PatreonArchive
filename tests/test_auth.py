@@ -5,6 +5,7 @@ temporary SQLite database: unauthenticated access is blocked, login works, and
 favourites persist per user.
 """
 import importlib
+import json
 
 import pytest
 from fastapi.testclient import TestClient
@@ -50,6 +51,7 @@ def client(tmp_path, monkeypatch):
     # coming back and fail every logged-in assertion below.
     monkeypatch.setenv("SESSION_COOKIE_SECURE", "false")
     monkeypatch.setenv("FEED_TOKEN", "feed-secret")
+    monkeypatch.setenv("DATA_ROOT", str(tmp_path / "data"))
 
     # Reload config + database so they pick up the patched env, then main.
     import app.config
@@ -157,3 +159,41 @@ def test_feed_unknown_post_is_404(client):
 def test_links_endpoint_works_with_session(client):
     client.post("/api/login", data={"username": "tester", "password": "pw"})
     assert client.get("/api/posts/1/links").status_code == 200
+
+
+# --- homelib collections ----------------------------------------------------
+
+def _write_collections(tmp_path, config, files=None):
+    d = tmp_path / "data" / "homelib"
+    d.mkdir(parents=True, exist_ok=True)
+    (d / "collections.json").write_text(json.dumps(config), encoding="utf-8")
+    for name, body in (files or {}).items():
+        (d / name).write_text(body, encoding="utf-8")
+
+
+def test_homelib_collections_combine_post_file_and_inline_links(client, tmp_path):
+    _write_collections(tmp_path, {"collections": [
+        {"name": "Maps", "post_id": 1},
+        {"name": "Extras", "manifests": "extras.txt", "links": ["https://example.com/c/module.json"]},
+    ]}, {"extras.txt": "# comment\nhttps://example.com/b/module.json\n\nhttps://example.com/c/module.json\n"})
+    resp = client.get("/api/homelib/collections", headers=FEED_AUTH)
+    assert resp.status_code == 200
+    assert resp.json() == {"collections": [
+        {"name": "Maps", "links": ["https://example.com/a/module.json", "https://example.com/b/module.json"]},
+        # File then inline, duplicates dropped.
+        {"name": "Extras", "links": ["https://example.com/b/module.json", "https://example.com/c/module.json"]},
+    ]}
+
+
+def test_homelib_collections_empty_without_config(client):
+    assert client.get("/api/homelib/collections", headers=FEED_AUTH).json() == {"collections": []}
+
+
+def test_homelib_collections_reject_paths_outside_folder(client, tmp_path):
+    _write_collections(tmp_path, {"collections": [{"name": "Bad", "manifests": "../../etc/passwd"}]})
+    assert client.get("/api/homelib/collections", headers=FEED_AUTH).status_code == 500
+
+
+def test_homelib_collections_require_token(client):
+    assert client.get("/api/homelib/collections").status_code == 401
+    assert client.get("/api/homelib/collections", headers={"Authorization": "Bearer nope"}).status_code == 401

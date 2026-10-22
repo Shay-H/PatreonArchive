@@ -52,7 +52,7 @@ def verify_password(password: str, stored: str) -> bool:
 
 
 # Paths a FEED_TOKEN bearer may read without a session.
-FEED_PATH_RE = re.compile(r"^/api/posts/\d+/links$")
+FEED_PATH_RE = re.compile(r"^/api/(posts/\d+/links|homelib/collections)$")
 
 
 def is_public_path(path: str) -> bool:

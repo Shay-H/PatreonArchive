@@ -21,6 +21,7 @@ from sqlalchemy.orm import Session, joinedload, selectinload, aliased
 from app.auth import authenticate, is_feed_request, is_public_path, require_user
 from app.config import settings, get_session_secret
 from app.database import SessionLocal, engine
+from app.homelib import CollectionsConfigError, resolve_collections
 from app.models import Attachment, Base, Creator, Favourite, Post, Tag, User, post_tags
 from app.parser import extract_can_view, extract_rich_html, is_patreon_url
 from app.sanitize import sanitize_html
@@ -763,6 +764,19 @@ def get_post_links(post_id: int, db: Session = Depends(get_db)):
         "updated_at": post.content_updated_at or post.updated_at,
         "links": [link.url for link in links if not is_patreon_url(link.url)],
     }
+
+
+@app.get("/api/homelib/collections")
+def get_homelib_collections(db: Session = Depends(get_db)):
+    """Library sections and their manifest links, polled by homelib.
+
+    Configured in data/homelib/ (see app/homelib.py). Reachable with a session
+    or with the FEED_TOKEN bearer.
+    """
+    try:
+        return {"collections": resolve_collections(db)}
+    except CollectionsConfigError as e:
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @app.get("/api/posts/{post_id}/attachments/{attachment_id}")

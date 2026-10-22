@@ -65,9 +65,10 @@ class Settings(BaseSettings):
     # How long a login lasts, in seconds (default 30 days).
     session_max_age: int = 60 * 60 * 24 * 30
 
-    # Bearer token for machine clients (e.g. the homelib map fetcher) that read
-    # a post's link list via GET /api/posts/{id}/links without a login session.
-    # Grants that one read-only endpoint and nothing else. Blank disables it.
+    # Bearer token for machine clients (the homelib map fetcher) that read a
+    # post's link list (GET /api/posts/{id}/links) or the homelib collections
+    # (GET /api/homelib/collections) without a login session. Grants those
+    # read-only endpoints and nothing else. Blank disables it.
     feed_token: str = ""
 
 
