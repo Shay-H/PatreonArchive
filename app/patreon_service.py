@@ -167,6 +167,13 @@ def _upsert_post(session, creator: Creator, vanity: str, wrapped: dict) -> Post:
             )
         )
 
+    if post is not None and _is_inaccessible(wrapped):
+        # Lost access (e.g. a lapsed pledge): Patreon now serves a teaser.
+        # Every path that re-saves a known post lands here, including the
+        # creator scrape, which re-imports the newest page on each sync.
+        # Keep the archived copy instead of overwriting it.
+        return post
+
     if not post:
         post = Post(creator_id=creator.id, source_path=sp)
         session.add(post)

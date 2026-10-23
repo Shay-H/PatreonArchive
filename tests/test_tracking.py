@@ -119,6 +119,32 @@ def test_lost_access_keeps_the_archived_copy_and_stops_tracking(env, monkeypatch
         assert "pledge" in post.tracking_stopped_reason.lower()
 
 
+def test_creator_scrape_never_overwrites_with_a_locked_teaser(env):
+    """The creator scrape re-saves the newest page of posts on every sync.
+    After a pledge lapses those come back locked; the archive must keep the
+    copy it has rather than replace it with the teaser."""
+    svc, Session = env
+    post_id = _seed(Session)
+    from sqlalchemy import select
+    from app.models import Creator, Post
+    with Session() as db:
+        creator = db.scalar(select(Creator))
+        svc._upsert_post(db, creator, "czepeku", _envelope(body="<p>teaser</p>", can_view=False))
+        db.commit()
+    with Session() as db:
+        post = db.get(Post, post_id)
+        assert post.content == "<p>v1</p>"
+        assert post.can_view is True
+
+    # With access, a re-save still picks up edits.
+    with Session() as db:
+        creator = db.scalar(select(Creator))
+        svc._upsert_post(db, creator, "czepeku", _envelope(body="<p>v2</p>"))
+        db.commit()
+    with Session() as db:
+        assert db.get(Post, post_id).content == "<p>v2</p>"
+
+
 def test_deleted_post_stops_tracking_but_keeps_the_copy(env, monkeypatch):
     svc, Session = env
     post_id = _seed(Session)
