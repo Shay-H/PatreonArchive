@@ -1,0 +1,8 @@
+{
+  "collections": [
+    { "name": "Maps", "post_id": 19055 },
+    { "name": "Scenes", "manifests": "czepeku-scenes.txt" },
+    { "name": "Mad Cartographer", "manifests": "mad-cartographer.txt" },
+    { "name": "Moonlight Maps", "manifests": "moonlight-maps.txt" }
+  ]
+}

@@ -8,8 +8,12 @@ venv/
 .env.*
 !.env.example
 
-# Archive data (DB + raw downloads, ~1.3GB) and transfer tarballs
-data/
+# Archive data (DB + raw downloads, ~1.3GB) and transfer tarballs.
+# data/homelib/ holds homelib's section config, which is tracked; its manifest
+# lists are download links for paid content, so they stay out of this public repo.
+data/*
+!data/homelib/
+data/homelib/*.txt
 *.db
 *.sqlite3
 *.tar
